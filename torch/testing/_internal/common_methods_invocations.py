@@ -10141,8 +10141,6 @@ op_db: List[OpInfo] = [
                    safe_casts_outputs=True,
                    supports_autograd=False,
                    skips=(
-                       # Pre-existing condition; Needs to be fixed
-                       DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_composite_compliance'),
                        # The function variant always returns BoolTensor
                        # while the inplace variant preserves the input dtype.
                        # >>> t = torch.randn(3)
@@ -10486,8 +10484,6 @@ op_db: List[OpInfo] = [
                     supports_autograd=False,
                     always_returns_bool=True,
                     skips=(
-                        # Pre-existing condition; Needs to be fixed
-                        DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_composite_compliance'),
                         # FIXME: logical_and does not accept scalar inputs
                         DecorateInfo(unittest.expectedFailure, 'TestBinaryUfuncs', 'test_broadcast_python_scalar'),
                     )),
@@ -10498,8 +10494,6 @@ op_db: List[OpInfo] = [
                     supports_autograd=False,
                     always_returns_bool=True,
                     skips=(
-                        # Pre-existing condition; Needs to be fixed
-                        DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_composite_compliance'),
                         # FIXME: logical_or does not accept scalar inputs
                         DecorateInfo(unittest.expectedFailure, 'TestBinaryUfuncs', 'test_broadcast_python_scalar'),
                     )),
@@ -10510,8 +10504,6 @@ op_db: List[OpInfo] = [
                     supports_autograd=False,
                     always_returns_bool=True,
                     skips=(
-                        # Pre-existing condition; Needs to be fixed
-                        DecorateInfo(unittest.expectedFailure, 'TestCommon', 'test_composite_compliance'),
                         # FIXME: logical_xor does not accept scalar inputs
                         DecorateInfo(unittest.expectedFailure, 'TestBinaryUfuncs', 'test_broadcast_python_scalar'),
                     )),
