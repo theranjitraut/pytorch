@@ -1344,3 +1344,34 @@ TEST(CreateOwnedRefs, ValueFromOuterScope) {
   CreateOwnedRefs(*graph);
   EXPECT_TRUE(hasNodeWithKind(graph, "static_runtime::create_owned_ref"));
 }
+
+TEST(ForceSubBlocksToReturnValue, IfBlocks) {
+  const auto src = R"IR(
+    graph(%c: bool):
+        %1: int = prim::Constant[value=1]()
+        %2: int = prim::Constant[value=2]()
+        %x: int[] = prim::ListConstruct(%1)
+        prim::If(%c)
+          block0():
+              aten::append(%x, %1)
+              -> ()
+          block1():
+              aten::append(%x, %2)
+              -> ()
+        return (%x)
+  )IR";
+
+  auto graph = getGraphFromIR(src);
+  ForceNonEmptyOutputs(*graph);
+
+  for (auto* node : graph->nodes()) {
+    if (node->blocks().empty()) {
+      continue;
+    }
+    const auto num_outputs = node->outputs().size();
+    EXPECT_NE(num_outputs, 0);
+    for (auto* block : node->blocks()) {
+      EXPECT_EQ(num_outputs, block->outputs().size());
+    }
+  }
+}
