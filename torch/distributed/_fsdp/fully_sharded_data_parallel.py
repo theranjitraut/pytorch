@@ -352,6 +352,8 @@ class FullyShardedDataParallel(nn.Module):
         """
         self._is_root: Optional[bool] = None
         self._streams: Dict[str, torch.cuda.Stream] = {}
+        self._fsdp_graph_order: List[nn.Module] = []
+        self._my_fsdp_idx_in_graph: Optional[int] = None
         for p in self.params:
             if hasattr(p, "_local_shard"):
                 # reset attributes that are added in _init_param_attributes, as
@@ -519,6 +521,7 @@ class FullyShardedDataParallel(nn.Module):
         for n, m in self.named_modules():
             if n != "" and isinstance(m, FullyShardedDataParallel):
                 m._streams = self._streams
+                m._fsdp_graph_order = self._fsdp_graph_order
 
     def _wait_for_previous_optim_step(self) -> None:
         """
@@ -546,6 +549,10 @@ class FullyShardedDataParallel(nn.Module):
         self._register_post_backward_hooks()
 
         outputs = self.module(*args, **kwargs)
+
+        if self not in self._fsdp_graph_order:
+            self._my_fsdp_idx_in_graph = len(self._fsdp_graph_order)
+            self._fsdp_graph_order.append(self)
 
         if self.reshard_after_forward:
             self._free_full_params()
@@ -704,6 +711,14 @@ class FullyShardedDataParallel(nn.Module):
         # Wait for all work in the current stream to finish, then start the
         # reductions in post_backward stream.
         self._streams["post_backward"].wait_stream(torch.cuda.current_stream())
+
+        # Prefetch previous layer's full params in backward pass
+        if (
+            self._fsdp_graph_order is not None
+            and self._my_fsdp_idx_in_graph is not None and self._my_fsdp_idx_in_graph > 0
+        ):
+            self._fsdp_graph_order[self._my_fsdp_idx_in_graph - 1]._rebuild_full_params()  # type: ignore[operator]
+
         with torch.cuda.stream(self._streams["post_backward"]):
             orig_grad_data = param.grad.data
 
